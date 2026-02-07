@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kirim Pesan ke Admin</title>
+    <style>
+        body { max-width: 600px; margin: 20px auto; padding: 0 10px; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
+        button { padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h3>Kirim Pesan ke Admin</h3>
+    <input type="text" id="namaPengguna" placeholder="Nama Anda" required>
+    <textarea id="isiPesan" rows="5" placeholder="Tulis pesan Anda di sini..." required></textarea>
+    <button onclick="kirimPesan()">Kirim Pesan</button>
+    <div id="pesanNotifikasi" style="margin-top: 15px; padding: 10px; border-radius: 4px; display: none;"></div>
+
+    <script>
+        async function kirimPesan() {
+            const nama = document.getElementById('namaPengguna').value;
+            const pesan = document.getElementById('isiPesan').value;
+            const notif = document.getElementById('pesanNotifikasi');
+
+            try {
+                const res = await fetch('/api/pesan/kirim', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ namaPengguna: nama, isiPesan: pesan })
+                });
+                const data = await res.json();
+
+                notif.style.display = 'block';
+                notif.style.backgroundColor = data.sukses ? '#4CAF50' : '#f44336';
+                notif.textContent = data.pesan;
+
+                if (data.sukses) {
+                    document.getElementById('namaPengguna').value = '';
+                    document.getElementById('isiPesan').value = '';
+                }
+            } catch (err) {
+                notif.style.display = 'block';
+                notif.style.backgroundColor = '#f44336';
+                notif.textContent = 'Gagal kirim pesan, coba lagi nanti';
+            }
+        }
+    </script>
+</body>
+</html>
+
