@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kelola Pesan Pengguna</title>
+    <style>
+        body { max-width: 800px; margin: 20px auto; padding: 0 10px; }
+        .card { border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 4px; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
+        button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; }
+        .btn-login { background: #4CAF50; color: white; }
+        .btn-logout { background: #f44336; color: white; }
+        .btn-simpan { background: #2196F3; color: white; }
+        #loginSection { display: block; }
+        #pesanSection { display: none; }
+        .notif { margin: 15px 0; padding: 10px; border-radius: 4px; display: none; }
+    </style>
+</head>
+<body>
+    <!-- Bagian Login Admin -->
+    <div id="loginSection">
+        <h3>Login Admin</h3>
+        <input type="text" id="username" placeholder="Username Admin">
+        <input type="password" id="password" placeholder="Password Admin">
+        <button class="btn-login" onclick="loginAdmin()">Login</button>
+        <div id="loginNotif" class="notif"></div>
+    </div>
+
+    <!-- Bagian Kelola Pesan -->
+    <div id="pesanSection">
+        <h3>Daftar Pesan Pengguna</h3>
+        <button class="btn-logout" onclick="logoutAdmin()">Logout</button>
+        <div id="daftarPesan"></div>
+        <div id="pesanNotif" class="notif"></div>
+    </div>
+
+    <script>
+        // Cek apakah sudah login (dari session)
+        window.onload = async () => {
+            try {
+                const res = await fetch('/api/pesan/semua');
+                if (res.ok) {
+                    tampilkanPesan();
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('pesanSection').style.display = 'block';
+                }
+            } catch (err) {}
+        };
+
+        // Login Admin
+        async function loginAdmin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const notif = document.getElementById('loginNotif');
+
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                notif.style.display = 'block';
+                notif.style.backgroundColor = data.sukses ? '#4CAF50' : '#f44336';
+                notif.textContent = data.pesan;
+
+                if (data.sukses) {
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('pesanSection').style.display = 'block';
+                    tampilkanPesan();
+                }
+            } catch (err) {
+                notif.style.display = 'block';
+                notif.style.backgroundColor = '#f44336';
+                notif.textContent = 'Gagal login, coba lagi';
+            }
+        }
+
+        // Logout Admin
+        async function logoutAdmin() {
+            await fetch('/api/admin/logout');
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('pesanSection').style.display = 'none';
+        }
+
+        // Tampilkan Semua Pesan
+        async function tampilkanPesan() {
+            const container = document.getElementById('daftarPesan');
+            const notif = document.getElementById('pesanNotif');
+
+            try {
+                const res = await fetch('/api/pesan/semua');
+                const semuaPesan = await res.json();
+
+                if (semuaPesan.length === 0) {
+                    container.innerHTML = '<p>Belum ada pesan yang diterima.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                semuaPesan.forEach(pesan => {
+                    container.innerHTML += `
+                        <div class="card">
+                            <p><strong>Nama Pengguna:</strong> ${pesan.namaPengguna}</p>
+                            <p><strong>Tanggal Kirim:</strong> ${new Date(pesan.tanggalKirim).toLocaleString()}</p>
+                            <p><strong>Isi Pesan:</strong> ${pesan.isiPesan}</p>
+                            <p><strong>Masukkan Admin:</strong> ${pesan.masukkanAdmin || '- Belum ada masukkan -'}</p>
+                            <textarea id="masukkan-${pesan._id}" rows="3" placeholder="Tulis masukkan di sini...">${pesan.masukkanAdmin || ''}</textarea>
+                            <button class="btn-simpan" onclick="simpanMasukkan('${pesan._id}')">Simpan Masukkan</button>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                notif.style.display = 'block';
+                notif.style.backgroundColor = '#f44336';
+                notif.textContent = 'Gagal muat pesan';
+            }
+        }
+
+        // Simpan Masukkan Admin
+        async function simpanMasukkan(idPesan) {
+            const masukkan = document.getElementById(`masukkan-${idPesan}`).value;
+            const notif = document.getElementById('pesanNotif');
+
+            try {
+                const res = await fetch('/api/pesan/masukkan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idPesan, masukkan })
+                });
+                const data = await res.json();
+
+                notif.style.display = 'block';
+                notif.style.backgroundColor = data.sukses ? '#4CAF50' : '#f44336';
+                notif.textContent = data.pesan;
+
+                if (data.sukses) tampilkanPesan();
+            } catch (err) {
+                notif.style.display = 'block';
+                notif.style.backgroundColor = '#f44336';
+                notif.textContent = 'Gagal simpan masukkan';
+            }
+        }
+    </script>
+</body>
+</html>
+
